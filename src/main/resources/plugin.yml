@@ -2,6 +2,6 @@ name: Releashed
 version: '1.0'
 main: me.nidzuhoguro.releashed.Releashed
 api-version: '1.21'
-authors: [ Beyley, Nidzuhoguro ]
-description: Rebuild of the plugin by Beyley
-website: https://github.com/Beyley/LeashPlayers
+authors: [ Nidzuhoguro ]
+description: The best player leashing plugin :3
+website: https://github.com/Nidzuhoguro/Releashed
