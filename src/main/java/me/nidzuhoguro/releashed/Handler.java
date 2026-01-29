@@ -9,20 +9,20 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityUnleashEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.PluginLogger;
 
 import java.util.ArrayList;
 
 public class Handler implements Listener {
 
     private static final Releashed releashed = Releashed.getPlugin(Releashed.class);
-    public PluginLogger LOGGER = new PluginLogger(releashed);
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
@@ -39,9 +39,9 @@ public class Handler implements Listener {
         ArrayList<Pair> pairs = Pair.getAllPairs(player);
 
         for (Pair pair : pairs) {
-            if (pair.submissive.equals(player)) player.damage(10.0);
+            if (pair.submissive.equals(player)) player.damage(20.0); // Deals great damage to the sub if they disconnect.
             pair.dominant.getInventory().addItem(new ItemStack(Material.LEAD));
-            pair.unleash();
+            pair.unleash(false);
         }
     }
 
@@ -50,7 +50,8 @@ public class Handler implements Listener {
         ArrayList<Pair> pairs = Pair.getAllPairs(event.getEntity());
 
         for (Pair pair : pairs) {
-            pair.unleash();
+            if (pair.isAttached() && event.getEntity() != pair.submissive) continue; // If the dominant left the sub tied to a fence and died, the sub stays tied.
+            pair.unleash(false);
             pair.dominant.getInventory().addItem(new ItemStack(Material.LEAD));
         }
     }
@@ -60,7 +61,8 @@ public class Handler implements Listener {
         ArrayList<Pair> pairs = Pair.getAllPairs(event.getPlayer());
 
         for (Pair pair : pairs) {
-            pair.unleash();
+            if (pair.isAttached() && event.getPlayer() != pair.submissive) continue; // If the dominant left the sub tied to a fence and teleported away, the sub stays tied.
+            pair.unleash(false);
             pair.dominant.getInventory().addItem(new ItemStack(Material.LEAD));
         }
     }
@@ -70,27 +72,38 @@ public class Handler implements Listener {
         ArrayList<Pair> pairs = Pair.getAllPairs(event.getPlayer());
 
         for (Pair pair : pairs) {
-            pair.unleash();
+            pair.unleash(false);
             pair.dominant.getInventory().addItem(new ItemStack(Material.LEAD));
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onUnleash(EntityUnleashEvent event) {
+        ArrayList<Pair> discard = new ArrayList<>();
         for (Pair pair : releashed.pairs) {
             if (pair.leashMount.equals(event.getEntity())) {
-                pair.unleash();
+                if (pair.unleash(true)) discard.add(pair);
             }
         }
+
+        releashed.pairs.removeAll(discard); // Fixed ConcurrentModificationException.
     }
 
-    @EventHandler
-    public void onAttackDominant(EntityDamageByEntityEvent event) {
-        if (!(event.getDamager() instanceof Player) || !(event.getEntity() instanceof Player)) return;
-        ArrayList<Pair> pairs = Pair.getAllPairs((Player) event.getDamager());
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerAttack(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player)) return;
 
-        for (Pair pair : pairs) {
-            if (pair.dominant.equals(event.getEntity())) ((Player) event.getDamager()).damage(event.getDamage());
+        // Subs take damage equal to that they dealt to their dominants
+        if (event.getEntity() instanceof Player) {
+            ArrayList<Pair> pairs = Pair.getAllPairs((Player) event.getDamager());
+
+            for (Pair pair : pairs) {
+                if (pair.dominant.equals(event.getEntity())) ((Player) event.getDamager()).damage(event.getDamage());
+            }
+        }
+
+        if (event.getEntity().getType().equals(EntityType.LEASH_KNOT)) {
+            if (!Pair.getDominantPairs((Player) event.getDamager()).isEmpty()) event.setCancelled(true);
         }
     }
 
@@ -99,15 +112,31 @@ public class Handler implements Listener {
         if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && event.getClickedBlock() != null) {
             if (event.getClickedBlock().getType().name().endsWith("_FENCE")) {
                 if (event.getHand() == EquipmentSlot.OFF_HAND || Pair.getAllPairs(event.getPlayer()).isEmpty()) return;
-                LOGGER.info("Passed vibe checks");
                 Location location = event.getClickedBlock().getLocation().add(0.0, 0.5, 0.0);
                 Entity knot = event.getPlayer().getWorld().spawnEntity(location, EntityType.LEASH_KNOT);
 
                 ArrayList<Pair> pairs = Pair.getAllPairs(event.getPlayer());
 
                 for (Pair pair : pairs) {
-                    pair.attachToBlock(location, knot);
+                    pair.attachToBlock(location, knot, event.getClickedBlock());
                 }
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onHangingDamage(HangingBreakByEntityEvent event) {
+        if (event.getEntity().getType().equals(EntityType.LEASH_KNOT) && !Pair.getDominantPairs((Player) event.getRemover()).isEmpty()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onBlockBreak(BlockBreakEvent event) {
+        if (event.getBlock().getType().name().endsWith("_FENCE") && !Pair.getDominantPairs(event.getPlayer()).isEmpty()) { // If a sub tries to break a fence
+            ArrayList<Pair> pairs = Pair.getAllPairs(event.getPlayer());
+            for (Pair pair : pairs) {
+                if (pair.getFence().equals(event.getBlock())) event.setCancelled(true);
             }
         }
     }
@@ -143,7 +172,7 @@ public class Handler implements Listener {
 
         for (Pair pair : domPairs) {
             if (pair.submissive.equals(submissive)) {
-                pair.unleash();
+                pair.unleash(false);
                 dominant.getInventory().addItem(new ItemStack(Material.LEAD));
                 return;
             }

@@ -1,6 +1,7 @@
 package me.nidzuhoguro.releashed;
 
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -19,6 +20,7 @@ public class Pair {
     private boolean attached;
     private Location anchor;
     private Entity knot;
+    private Block fence;
 
     public Pair(Player dominant, Player submissive) {
         this.dominant = dominant;
@@ -65,8 +67,9 @@ public class Pair {
         return dominant.equals(player);
     }
 
-    public void attachToBlock(Location blockLocation, Entity knot) {
+    public void attachToBlock(Location blockLocation, Entity knot, Block fence) {
         anchor = blockLocation;
+        this.fence = fence;
         leashMount.setLeashHolder(knot);
         this.knot = knot;
         attached = true;
@@ -75,9 +78,10 @@ public class Pair {
     public void detachFromBlock() {
         leashMount.setLeashHolder(dominant);
         attached = false;
+        fence = null;
     }
 
-    public void unleash() {
+    public boolean unleash(boolean queued) {
         if (leashMount != null) {
             leashMount.remove();
             leashMount = null;
@@ -87,7 +91,16 @@ public class Pair {
             knot.remove();
             knot = null;
         }
-        releashed.pairs.remove(this);
+        if (!queued) releashed.pairs.remove(this); // The queue thing is my lazy and horrible solution to the ConcurrentModificationExceptions.
+        return true;
+    }
+
+    public boolean isAttached() {
+        return attached;
+    }
+
+    public Block getFence() {
+        return fence;
     }
 
     public void update() {
@@ -115,7 +128,7 @@ public class Pair {
             if (leashMount != null) leashMount.remove();
 
             Location location = submissive.getLocation();
-            location.add(0.0, 1.1, 0.0);
+            location.add(0.0, 0.8, 0.0);
             leashMount = (LivingEntity) submissive.getWorld().spawnEntity(location, EntityType.BAT);
 
             leashMount.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1));
