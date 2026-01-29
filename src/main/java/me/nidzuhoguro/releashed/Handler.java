@@ -1,24 +1,28 @@
 package me.nidzuhoguro.releashed;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityUnleashEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.PluginLogger;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class Handler implements Listener {
 
     private static final Releashed releashed = Releashed.getPlugin(Releashed.class);
+    public PluginLogger LOGGER = new PluginLogger(releashed);
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
@@ -90,25 +94,52 @@ public class Handler implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST) // EXPERIMENTAL
+    public void attachToFence(PlayerInteractEvent event) {
+        if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && event.getClickedBlock() != null) {
+            if (event.getClickedBlock().getType().name().endsWith("_FENCE")) {
+                if (event.getHand() == EquipmentSlot.OFF_HAND || Pair.getAllPairs(event.getPlayer()).isEmpty()) return;
+                LOGGER.info("Passed vibe checks");
+                Location location = event.getClickedBlock().getLocation().add(0.0, 0.5, 0.0);
+                Entity knot = event.getPlayer().getWorld().spawnEntity(location, EntityType.LEASH_KNOT);
+
+                ArrayList<Pair> pairs = Pair.getAllPairs(event.getPlayer());
+
+                for (Pair pair : pairs) {
+                    pair.attachToBlock(location, knot);
+                }
+            }
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerInteract(PlayerInteractAtEntityEvent event) {
 
         Player dominant = event.getPlayer();
+
+        if (event.getHand() == EquipmentSlot.OFF_HAND) return;
+        if (event.getRightClicked().getType() == EntityType.LEASH_KNOT) {
+
+            if (!Pair.getDominantPairs(event.getPlayer()).isEmpty()) { // Subs cannot untie the leash knots
+                event.setCancelled(true);
+                return;
+            }
+            ArrayList<Pair> pairs = Pair.getAllPairs(event.getPlayer());
+
+            for (Pair pair : pairs) {
+                pair.detachFromBlock();
+            }
+            return;
+        }
+
+        if (!(event.getRightClicked() instanceof Player)) return;
+
         Entity submissive = event.getRightClicked();
 
         ItemStack domItem = dominant.getInventory().getItemInMainHand();
 
         ArrayList<Pair> domPairs = Pair.getAllPairs(dominant);
         ArrayList<Pair> subPairs = Pair.getAllPairs((Player) submissive);
-
-        for (Pair pair : domPairs) {
-            if (pair.leashMount.equals(submissive)) {
-                event.setCancelled(true);
-                return;
-            }
-        }
-
-        if (event.getHand() == EquipmentSlot.OFF_HAND || !(event.getRightClicked() instanceof Player)) return;
 
         for (Pair pair : domPairs) {
             if (pair.submissive.equals(submissive)) {

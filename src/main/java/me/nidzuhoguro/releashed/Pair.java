@@ -1,6 +1,7 @@
 package me.nidzuhoguro.releashed;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -15,6 +16,9 @@ public class Pair {
     public final Player dominant;
     public final Player submissive;
     public LivingEntity leashMount;
+    private boolean attached;
+    private Location anchor;
+    private Entity knot;
 
     public Pair(Player dominant, Player submissive) {
         this.dominant = dominant;
@@ -33,7 +37,7 @@ public class Pair {
         leashMount.setLeashHolder(dominant);
     }
 
-    public ArrayList<Pair> getSubmissivePairs(Player dom) {
+    public static ArrayList<Pair> getSubmissivePairs(Player dom) {
         ArrayList<Pair> pairs = new ArrayList<>();
         for (Pair pair : releashed.pairs) {
             if (pair.dominant.equals(dom)) pairs.add(pair);
@@ -41,11 +45,12 @@ public class Pair {
         return pairs;
     }
 
-    public Pair getDominantPair(Player sub) {
+    public static ArrayList<Pair> getDominantPairs(Player sub) {
+        ArrayList<Pair> pairs = new ArrayList<>();
         for (Pair pair : releashed.pairs) {
-            if (pair.submissive.equals(sub)) return pair;
+            if (pair.submissive.equals(sub)) pairs.add(pair);
         }
-        return null;
+        return pairs;
     }
 
     public static ArrayList<Pair> getAllPairs(Player player) {
@@ -60,10 +65,27 @@ public class Pair {
         return dominant.equals(player);
     }
 
+    public void attachToBlock(Location blockLocation, Entity knot) {
+        anchor = blockLocation;
+        leashMount.setLeashHolder(knot);
+        this.knot = knot;
+        attached = true;
+    }
+
+    public void detachFromBlock() {
+        leashMount.setLeashHolder(dominant);
+        attached = false;
+    }
+
     public void unleash() {
         if (leashMount != null) {
             leashMount.remove();
             leashMount = null;
+        }
+
+        if (knot != null) {
+            knot.remove();
+            knot = null;
         }
         releashed.pairs.remove(this);
     }
@@ -73,11 +95,20 @@ public class Pair {
             unleash();
         }
 
-        double subDistance = submissive.getLocation().distance(dominant.getLocation());
+        if (!attached) {
+            double subDistance = submissive.getLocation().distance(dominant.getLocation());
 
-        if (subDistance > 5) {
-            Vector direction = dominant.getLocation().toVector().subtract(submissive.getLocation().toVector()).normalize().multiply(0.5);
-            submissive.setVelocity(direction);
+            if (subDistance > 5) {
+                Vector direction = dominant.getLocation().toVector().subtract(submissive.getLocation().toVector()).normalize().multiply(0.5);
+                submissive.setVelocity(direction);
+            }
+        }else{
+            double subDistance = submissive.getLocation().distance(anchor);
+
+            if (subDistance > 5) {
+                Vector direction = anchor.toVector().subtract(submissive.getLocation().toVector()).normalize().multiply(0.5);
+                submissive.setVelocity(direction);
+            }
         }
 
         if (leashMount == null || leashMount.isDead() || !leashMount.isValid()) {
