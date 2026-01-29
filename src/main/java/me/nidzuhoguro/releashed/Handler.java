@@ -6,12 +6,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityUnleashEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class Handler implements Listener {
@@ -75,6 +77,16 @@ public class Handler implements Listener {
             if (pair.leashMount.equals(event.getEntity())) {
                 pair.unleash();
             }
+        }
+    }
+
+    @EventHandler
+    public void onAttackDominant(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player) || !(event.getEntity() instanceof Player)) return;
+        ArrayList<Pair> pairs = Pair.getAllPairs((Player) event.getDamager());
+
+        for (Pair pair : pairs) {
+            if (pair.dominant.equals(event.getEntity())) ((Player) event.getDamager()).damage(event.getDamage());
         }
     }
 
