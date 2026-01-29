@@ -105,7 +105,7 @@ public class Pair {
 
     public void update() {
         if (submissive.getWorld() != dominant.getWorld()) {
-            unleash();
+            unleash(false);
         }
 
         if (!attached) {
