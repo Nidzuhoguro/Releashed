@@ -21,6 +21,7 @@ public class Pair {
     private Location anchor;
     private Entity knot;
     private Block fence;
+    private float leashLength = 5.0f;
 
     public Pair(Player dominant, Player submissive) {
         this.dominant = dominant;
@@ -39,15 +40,9 @@ public class Pair {
         leashMount.setLeashHolder(dominant);
     }
 
-    public static ArrayList<Pair> getSubmissivePairs(Player dom) {
-        ArrayList<Pair> pairs = new ArrayList<>();
-        for (Pair pair : releashed.pairs) {
-            if (pair.dominant.equals(dom)) pairs.add(pair);
-        }
-        return pairs;
-    }
-
-    public static ArrayList<Pair> getDominantPairs(Player sub) {
+    /// ### Pair.getSubmissivePairs(Player sub)
+    /// Returns an ArrayList of all pairs where the specified player is submissive.
+    public static ArrayList<Pair> getSubmissivePairs(Player sub) {
         ArrayList<Pair> pairs = new ArrayList<>();
         for (Pair pair : releashed.pairs) {
             if (pair.submissive.equals(sub)) pairs.add(pair);
@@ -108,19 +103,24 @@ public class Pair {
             unleash(false);
         }
 
-        if (!attached) {
-            double subDistance = submissive.getLocation().distance(dominant.getLocation());
 
-            if (subDistance > 5) {
-                Vector direction = dominant.getLocation().toVector().subtract(submissive.getLocation().toVector()).normalize().multiply(0.5);
-                submissive.setVelocity(direction);
+        if (!attached) { // New physics!
+            double distance = submissive.getLocation().distance(dominant.getLocation());
+            if (distance > leashLength) {
+                double d0 = (dominant.getLocation().getX() - submissive.getLocation().getX()) / distance;
+                double d1 = (dominant.getLocation().getY() - submissive.getLocation().getY()) / distance;
+                double d2 = (dominant.getLocation().getZ() - submissive.getLocation().getZ()) / distance;
+                Vector velocity = new Vector(Math.copySign(d0 * d0 * 0.4, d0), Math.copySign(d1 * d1 * 0.4, d1), Math.copySign(d2 * d2 * 0.4, d2));
+                submissive.setVelocity(submissive.getVelocity().add(velocity));
             }
         }else{
-            double subDistance = submissive.getLocation().distance(anchor);
-
-            if (subDistance > 5) {
-                Vector direction = anchor.toVector().subtract(submissive.getLocation().toVector()).normalize().multiply(0.5);
-                submissive.setVelocity(direction);
+            double distance = submissive.getLocation().distance(anchor);
+            if (distance > leashLength) {
+                double d0 = (dominant.getLocation().getX() - submissive.getLocation().getX()) / distance;
+                double d1 = (dominant.getLocation().getY() - submissive.getLocation().getY()) / distance;
+                double d2 = (dominant.getLocation().getZ() - submissive.getLocation().getZ()) / distance;
+                Vector velocity = new Vector(Math.copySign(d0 * d0 * 0.4, d0), Math.copySign(d1 * d1 * 0.4, d1), Math.copySign(d2 * d2 * 0.4, d2));
+                submissive.setVelocity(submissive.getVelocity().add(velocity));
             }
         }
 

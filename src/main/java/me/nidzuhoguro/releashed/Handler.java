@@ -25,15 +25,6 @@ public class Handler implements Listener {
     private static final Releashed releashed = Releashed.getPlugin(Releashed.class);
 
     @EventHandler
-    public void onPlayerMove(PlayerMoveEvent event) {
-        ArrayList<Pair> pairs = Pair.getAllPairs(event.getPlayer());
-
-        for (Pair pair : pairs) {
-            pair.update();
-        }
-    }
-
-    @EventHandler
     public void onPlayerDisconnect(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         ArrayList<Pair> pairs = Pair.getAllPairs(player);
@@ -67,20 +58,11 @@ public class Handler implements Listener {
         }
     }
 
-    @EventHandler
-    public void onPlayerLevelChange(PlayerLevelChangeEvent event) {
-        ArrayList<Pair> pairs = Pair.getAllPairs(event.getPlayer());
-
-        for (Pair pair : pairs) {
-            pair.unleash(false);
-            pair.dominant.getInventory().addItem(new ItemStack(Material.LEAD));
-        }
-    }
-
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onUnleash(EntityUnleashEvent event) {
         ArrayList<Pair> discard = new ArrayList<>();
         for (Pair pair : releashed.pairs) {
+            if (pair.leashMount == null) continue; // Prevent a potential NullPointerException.
             if (pair.leashMount.equals(event.getEntity())) {
                 if (pair.unleash(true)) discard.add(pair);
             }
@@ -103,7 +85,7 @@ public class Handler implements Listener {
         }
 
         if (event.getEntity().getType().equals(EntityType.LEASH_KNOT)) {
-            if (!Pair.getDominantPairs((Player) event.getDamager()).isEmpty()) event.setCancelled(true);
+            if (!Pair.getSubmissivePairs((Player) event.getDamager()).isEmpty()) event.setCancelled(true); // If the sub attacks their leash knot, cancel the event.
         }
     }
 
@@ -126,14 +108,15 @@ public class Handler implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onHangingDamage(HangingBreakByEntityEvent event) {
-        if (event.getEntity().getType().equals(EntityType.LEASH_KNOT) && !Pair.getDominantPairs((Player) event.getRemover()).isEmpty()) {
+        if (!(event.getRemover() instanceof Player)) return; // Fixed potential ClassCastException.
+        if (event.getEntity().getType().equals(EntityType.LEASH_KNOT) && !Pair.getSubmissivePairs((Player) event.getRemover()).isEmpty()) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockBreakEvent event) {
-        if (event.getBlock().getType().name().endsWith("_FENCE") && !Pair.getDominantPairs(event.getPlayer()).isEmpty()) { // If a sub tries to break a fence
+        if (event.getBlock().getType().name().endsWith("_FENCE") && !Pair.getSubmissivePairs(event.getPlayer()).isEmpty()) { // If a sub tries to break a fence
             ArrayList<Pair> pairs = Pair.getAllPairs(event.getPlayer());
             for (Pair pair : pairs) {
                 if (pair.getFence().equals(event.getBlock())) event.setCancelled(true);
@@ -144,12 +127,12 @@ public class Handler implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerInteract(PlayerInteractAtEntityEvent event) {
 
-        Player dominant = event.getPlayer();
+        Player player = event.getPlayer();
 
         if (event.getHand() == EquipmentSlot.OFF_HAND) return;
         if (event.getRightClicked().getType() == EntityType.LEASH_KNOT) {
 
-            if (!Pair.getDominantPairs(event.getPlayer()).isEmpty()) { // Subs cannot untie the leash knots
+            if (!Pair.getSubmissivePairs(event.getPlayer()).isEmpty()) { // Subs cannot untie the leash knots
                 event.setCancelled(true);
                 return;
             }
@@ -163,17 +146,17 @@ public class Handler implements Listener {
 
         if (!(event.getRightClicked() instanceof Player)) return;
 
-        Entity submissive = event.getRightClicked();
+        Entity target = event.getRightClicked();
 
-        ItemStack domItem = dominant.getInventory().getItemInMainHand();
+        ItemStack domItem = player.getInventory().getItemInMainHand();
 
-        ArrayList<Pair> domPairs = Pair.getAllPairs(dominant);
-        ArrayList<Pair> subPairs = Pair.getAllPairs((Player) submissive);
+        ArrayList<Pair> domPairs = Pair.getAllPairs(player);
+        ArrayList<Pair> subPairs = Pair.getAllPairs((Player) target);
 
         for (Pair pair : domPairs) {
-            if (pair.submissive.equals(submissive)) {
+            if (pair.submissive.equals(target)) {
                 pair.unleash(false);
-                dominant.getInventory().addItem(new ItemStack(Material.LEAD));
+                player.getInventory().addItem(new ItemStack(Material.LEAD));
                 return;
             }
         }
@@ -181,22 +164,22 @@ public class Handler implements Listener {
         if (domItem.getType() != Material.LEAD) return;
 
         for (Pair pair : subPairs) {
-            if (!pair.isDominant((Player) submissive)) {
-                dominant.sendMessage("This player is already leashed");
+            if (!pair.isDominant((Player) target)) {
+                player.sendMessage("This player is already leashed");
                 return;
             }
         }
 
         for (Pair pair : domPairs) {
-            if (pair.dominant.equals(submissive)) {
-                dominant.sendMessage("You cannot leash your dominant~");
+            if (pair.dominant.equals(target)) {
+                player.sendMessage("You cannot leash your dominant~");
                 return;
             }
         }
 
-        Pair pair = new Pair(dominant, (Player) submissive);
+        Pair pair = new Pair(player, (Player) target);
         domItem.setAmount(domItem.getAmount() - 1);
-        dominant.getInventory().setItemInMainHand(domItem);
+        player.getInventory().setItemInMainHand(domItem);
         releashed.pairs.add(pair);
     }
 }
