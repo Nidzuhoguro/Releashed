@@ -11,3 +11,9 @@ Or just send your ideas/bug reports on the [**issues page**](https://github.com/
 
 # Releases?
 Get 'em from the [**Releases Page**](https://github.com/Nidzuhoguro/Releashed/releases). This plugin was tested on Purpur 1.21.10 server, API level is 1.21 so it should work on any 1.21.x servers that support Bukkit plugins.
+
+# Screenshots
+
+![player to player](https://github.com/Nidzuhoguro/Releashed/blob/main/screenshots/playertoplayer.png)
+
+![player to fence](https://github.com/Nidzuhoguro/Releashed/blob/main/screenshots/playertofence.png)
