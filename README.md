@@ -1,3 +1,5 @@
+[![CodeFactor](https://www.codefactor.io/repository/github/nidzuhoguro/releashed/badge/main)](https://www.codefactor.io/repository/github/nidzuhoguro/releashed/overview/main)
+
 # Description :3
 Leashed players can cut the leash with shears, they also take damage when attacking those who leash them and they can be leashed to a fence just like mobs, and yes, once again, they cannot unleash themselves unless they have shears.
 
