@@ -21,7 +21,8 @@ public class Pair {
     private Location anchor;
     private Entity knot;
     private Block fence;
-    private float leashLength = 5.0f;
+    private float leashLength = 5.0f; // Maybe will be configurable later.
+    private Vector velocity;
 
     public Pair(Player dominant, Player submissive) {
         this.dominant = dominant;
@@ -110,7 +111,9 @@ public class Pair {
                 double d0 = (dominant.getLocation().getX() - submissive.getLocation().getX()) / distance;
                 double d1 = (dominant.getLocation().getY() - submissive.getLocation().getY()) / distance;
                 double d2 = (dominant.getLocation().getZ() - submissive.getLocation().getZ()) / distance;
-                Vector velocity = new Vector(Math.copySign(d0 * d0 * 0.4, d0), Math.copySign(d1 * d1 * 0.4, d1), Math.copySign(d2 * d2 * 0.4, d2));
+                velocity.setX(Math.copySign(d0 * d0 * 0.4, d0)); // Now mutating a single Vector object instead of allocating a new one every physics tick.
+                velocity.setY(Math.copySign(d1 * d1 * 0.4, d1));
+                velocity.setZ(Math.copySign(d2 * d2 * 0.4, d2));
                 submissive.setVelocity(submissive.getVelocity().add(velocity));
             }
         }else{
@@ -119,7 +122,9 @@ public class Pair {
                 double d0 = (anchor.getX() - submissive.getLocation().getX()) / distance;
                 double d1 = (anchor.getY() - submissive.getLocation().getY()) / distance;
                 double d2 = (anchor.getZ() - submissive.getLocation().getZ()) / distance;
-                Vector velocity = new Vector(Math.copySign(d0 * d0 * 0.4, d0), Math.copySign(d1 * d1 * 0.4, d1), Math.copySign(d2 * d2 * 0.4, d2));
+                velocity.setX(Math.copySign(d0 * d0 * 0.4, d0)); // Now mutating a single Vector object instead of allocating a new one every physics tick.
+                velocity.setY(Math.copySign(d1 * d1 * 0.4, d1));
+                velocity.setZ(Math.copySign(d2 * d2 * 0.4, d2));
                 submissive.setVelocity(submissive.getVelocity().add(velocity));
             }
         }
@@ -142,8 +147,7 @@ public class Pair {
             return;
         }
 
-        Location location = submissive.getLocation();
-        location.add(0.0, 1.1, 0.0);
-        leashMount.teleport(location);
+
+        leashMount.teleport(submissive.getLocation().add(0.0, 1.1, 0.0)); // NOT allocating an object now.
     }
 }
