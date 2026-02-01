@@ -10,7 +10,7 @@ If you want it to be better, send pull requests, please? :3
 Or just send your ideas/bug reports on the [**issues page**](https://github.com/Nidzuhoguro/Releashed/issues) of this repo.
 
 # Releases?
-Get 'em from the [**Releases Page**](https://github.com/Nidzuhoguro/Releashed/releases). This plugin was tested on Purpur 1.21.10 server, API level is 1.21 so it should work on any 1.21.x servers that support Bukkit plugins.
+Get 'em from the [**Releases Page**](https://github.com/Nidzuhoguro/Releashed/releases) or [**Modrinth**](https://modrinth.com/project/SE75wTRL). This plugin was tested on Purpur 1.21.10 server, API level is 1.21 so it should work on any 1.21.x servers that support Bukkit plugins.
 
 # Screenshots
 
