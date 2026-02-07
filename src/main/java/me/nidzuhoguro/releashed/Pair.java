@@ -22,7 +22,7 @@ public class Pair {
     private Entity knot;
     private Block fence;
     private float leashLength = 5.0f; // Maybe will be configurable later.
-    private Vector velocity;
+    private final Vector velocity = new Vector();
 
     public Pair(Player dominant, Player submissive) {
         this.dominant = dominant;
