@@ -1,5 +1,5 @@
 name: Releashed
-version: '1.4.3'
+version: '2.0-ALPHA'
 main: me.nidzuhoguro.releashed.Releashed
 api-version: '1.21'
 authors: [ Nidzuhoguro ]
