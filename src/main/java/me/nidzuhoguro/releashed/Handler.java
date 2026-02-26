@@ -136,10 +136,11 @@ public class Handler implements Listener {
                 event.setCancelled(true);
                 return;
             }
+
             ArrayList<Pair> pairs = Pair.getAllPairs(event.getPlayer());
 
             for (Pair pair : pairs) {
-                pair.detachFromBlock();
+                if (event.getRightClicked() == pair.leashMount) pair.detachFromBlock();
             }
             return;
         }

@@ -64,6 +64,7 @@ public class Pair {
     }
 
     public void attachToBlock(Location blockLocation, Entity knot, Block fence) {
+        if (attached) return;
         anchor = blockLocation;
         this.fence = fence;
         leashMount.setLeashHolder(knot);
@@ -72,6 +73,7 @@ public class Pair {
     }
 
     public void detachFromBlock() {
+        if (!attached) return;
         leashMount.setLeashHolder(dominant);
         attached = false;
         fence = null;
