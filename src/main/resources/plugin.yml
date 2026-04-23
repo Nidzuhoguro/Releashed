@@ -1,7 +1,7 @@
 name: Releashed
-version: '1.4.3'
+version: '1.4.4-ALPHA'
 main: me.nidzuhoguro.releashed.Releashed
-api-version: '1.21'
+api-version: '26.1'
 authors: [ Nidzuhoguro ]
 description: The best player leashing plugin :3
 website: https://github.com/Nidzuhoguro/Releashed
