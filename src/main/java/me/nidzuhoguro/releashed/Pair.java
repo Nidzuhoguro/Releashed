@@ -1,5 +1,6 @@
 package me.nidzuhoguro.releashed;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -9,130 +10,42 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
+import org.joml.Vector3f;
 
-import java.util.ArrayList;
+import java.util.UUID;
 
 public class Pair {
-    private static final Releashed releashed = Releashed.getPlugin(Releashed.class);
-    public final Player dominant;
-    public final Player submissive;
+
+    public final UUID dominantID;
+    public final UUID submissiveID;
     public LivingEntity leashMount;
-    private boolean attached;
-    private Location anchor;
+    private Vector3f anchor;
     private Entity knot;
     private Block fence;
-    private float leashLength = 5.0f; // Maybe will be configurable later.
+    private float leashLength = 5.0f;
     private final Vector velocity = new Vector();
+    private boolean valid = true;
 
-    public Pair(Player dominant, Player submissive) {
-        this.dominant = dominant;
-        this.submissive = submissive;
+    public Pair(UUID dominant, UUID submissive) {
+        this.dominantID = dominant;
+        this.submissiveID = submissive;
 
-        Location location = submissive.getLocation();
-        location.add(0.0, 1.1, 0.0);
-        leashMount = (LivingEntity) submissive.getWorld().spawnEntity(location, EntityType.BAT);
-
-        leashMount.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1));
-        leashMount.setAI(false);
-        leashMount.setInvisible(true);
-        leashMount.setInvulnerable(true);
-        leashMount.setCollidable(false);
-        leashMount.setSilent(true);
-        leashMount.setLeashHolder(dominant);
+        ensureMountExistence();
     }
 
-    /// ### Pair.getSubmissivePairs(Player sub)
-    /// Returns an ArrayList of all pairs where the specified player is submissive.
-    public static ArrayList<Pair> getSubmissivePairs(Player sub) {
-        ArrayList<Pair> pairs = new ArrayList<>();
-        for (Pair pair : releashed.pairs) {
-            if (pair.submissive.equals(sub)) pairs.add(pair);
-        }
-        return pairs;
-    }
-
-    public static ArrayList<Pair> getAllPairs(Player player) {
-        ArrayList<Pair> pairs = new ArrayList<>();
-        for (Pair pair : releashed.pairs) {
-            if (pair.dominant.equals(player) || pair.submissive.equals(player)) pairs.add(pair);
-        }
-        return pairs;
-    }
-
-    public boolean isDominant(Player player) {
-        return dominant.equals(player);
-    }
-
-    public void attachToBlock(Location blockLocation, Entity knot, Block fence) {
-        if (attached) return;
-        anchor = blockLocation;
-        this.fence = fence;
-        leashMount.setLeashHolder(knot);
-        this.knot = knot;
-        attached = true;
-    }
-
-    public void detachFromBlock() {
-        if (!attached) return;
-        leashMount.setLeashHolder(dominant);
-        attached = false;
-        fence = null;
-    }
-
-    public boolean unleash(boolean queued) {
-        if (leashMount != null) {
-            leashMount.remove();
-            leashMount = null;
-        }
-
-        if (knot != null) {
-            knot.remove();
-            knot = null;
-        }
-        if (!queued) releashed.pairs.remove(this); // The queue thing is my lazy and horrible solution to the ConcurrentModificationExceptions.
-        return true;
-    }
-
-    public boolean isAttached() {
-        return attached;
-    }
-
-    public Block getFence() {
-        return fence;
-    }
-
-    public void update() {
-        if (submissive.getWorld() != dominant.getWorld()) {
-            unleash(false);
-        }
-
-
-        if (!attached) { // New physics!
-            double distance = submissive.getLocation().distance(dominant.getLocation());
-            if (distance > leashLength) {
-                double d0 = (dominant.getLocation().getX() - submissive.getLocation().getX()) / distance;
-                double d1 = (dominant.getLocation().getY() - submissive.getLocation().getY()) / distance;
-                double d2 = (dominant.getLocation().getZ() - submissive.getLocation().getZ()) / distance;
-                velocity.setX(Math.copySign(d0 * d0 * 0.4, d0)); // Now mutating a single Vector object instead of allocating a new one every physics tick.
-                velocity.setY(Math.copySign(d1 * d1 * 0.4, d1));
-                velocity.setZ(Math.copySign(d2 * d2 * 0.4, d2));
-                submissive.setVelocity(submissive.getVelocity().add(velocity));
-            }
-        }else{
-            double distance = submissive.getLocation().distance(anchor);
-            if (distance > leashLength) {
-                double d0 = (anchor.getX() - submissive.getLocation().getX()) / distance;
-                double d1 = (anchor.getY() - submissive.getLocation().getY()) / distance;
-                double d2 = (anchor.getZ() - submissive.getLocation().getZ()) / distance;
-                velocity.setX(Math.copySign(d0 * d0 * 0.4, d0)); // Now mutating a single Vector object instead of allocating a new one every physics tick.
-                velocity.setY(Math.copySign(d1 * d1 * 0.4, d1));
-                velocity.setZ(Math.copySign(d2 * d2 * 0.4, d2));
-                submissive.setVelocity(submissive.getVelocity().add(velocity));
-            }
-        }
-
+    public void ensureMountExistence() {
         if (leashMount == null || leashMount.isDead() || !leashMount.isValid()) {
             if (leashMount != null) leashMount.remove();
+
+            Player submissive = Bukkit.getPlayer(submissiveID);
+            Player dominant = Bukkit.getPlayer(dominantID);
+
+            if (dominant == null || submissive == null) return;
+            if (isAttached()) {
+                if (knot == null) return;
+                if (!knot.isValid()) return;
+            }
+
 
             Location location = submissive.getLocation();
             location.add(0.0, 0.8, 0.0);
@@ -144,12 +57,93 @@ public class Pair {
             leashMount.setInvulnerable(true);
             leashMount.setCollidable(false);
             leashMount.setSilent(true);
-            leashMount.setLeashHolder(dominant);
+            leashMount.setLeashHolder(isAttached() ? knot : dominant);
             leashMount.setGravity(false);
+        }
+    }
+
+    public void attachToBlock(Location blockLocation, Entity knot, Block fence) {
+        if (anchor != null) return;
+        anchor = blockLocation.toVector().toVector3f();
+        this.fence = fence;
+        this.knot = knot;
+        leashMount.setLeashHolder(knot);
+    }
+
+    public void detachFromBlock() {
+        if (anchor == null) return;
+        Player dominant = Bukkit.getPlayer(dominantID);
+        if (dominant == null) return;
+        leashMount.setLeashHolder(dominant);
+        anchor = null;
+        fence = null;
+    }
+
+    public void unleash() {
+        if (leashMount != null) leashMount.remove();
+        if (knot != null) knot.remove();
+    }
+
+    private void computePhysics(double distance, Vector3f anchor, Vector3f target) {
+        double d0 = (anchor.x() - target.x()) / distance;
+        double d1 = (anchor.y() - target.y()) / distance;
+        double d2 = (anchor.z() - target.z()) / distance;
+        velocity.setX(Math.copySign(d0 * d0 * 0.4, d0));
+        velocity.setY(Math.copySign(d1 * d1 * 0.4, d1));
+        velocity.setZ(Math.copySign(d2 * d2 * 0.4, d2));
+    }
+
+    public void update() {
+        Player submissive = Bukkit.getPlayer(submissiveID);
+        Player dominant = Bukkit.getPlayer(dominantID);
+        boolean attached = isAttached();
+
+        if (submissive == null) return;
+
+        if (!attached && dominant == null) {
+            invalidate();
             return;
         }
 
+        ensureMountExistence();
 
-        leashMount.teleport(submissive.getLocation().add(0.0, 1.1, 0.0)); // NOT allocating an object now.
+        leashMount.teleport(submissive.getLocation().add(0.0, 1.1, 0.0));
+
+        Vector3f domLocation = attached ? null : dominant.getLocation().toVector().toVector3f();
+        Vector3f subLocation = submissive.getLocation().toVector().toVector3f();
+
+        double distance = anchor == null ? subLocation.distance(domLocation) : subLocation.distance(anchor);
+
+        if (distance > leashLength) return;
+
+        computePhysics(distance, attached ? anchor : domLocation, subLocation);
+        submissive.setVelocity(submissive.getVelocity().add(velocity));
+    }
+
+    public boolean isDominant(UUID player) {
+        return dominantID.equals(player);
+    }
+
+    public boolean isAttached() {
+        return anchor != null;
+    }
+
+    public void invalidate() {
+        valid = false;
+    }
+
+    public boolean isValid() {
+        if (!valid) return false;
+        if (isAttached() && knot == null || !knot.isValid()) return false;
+        Player dominant = Bukkit.getPlayer(dominantID);
+        if (!isAttached()) {
+            if (dominant == null) return false;
+            if (!dominant.isValid()) return false;
+        }
+        return Bukkit.getPlayer(submissiveID) != null;
+    }
+
+    public Block getFence() {
+        return fence;
     }
 }
