@@ -13,7 +13,6 @@ import java.util.stream.Stream;
 public final class Releashed extends JavaPlugin {
 
     //public final Path config = getDataFolder().toPath().resolve("config.json");
-    public static final Releashed PLUGIN = getPlugin(Releashed.class);
     public final Map<UUID, List<Pair>> pairs = new HashMap<>();
     public final Map<UUID, UUID> subToDomMap = new HashMap<>();
     private final PluginLogger logger = new PluginLogger(this);

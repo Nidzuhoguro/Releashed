@@ -35,7 +35,10 @@ public class Pair {
 
     public void ensureMountExistence() {
         if (leashMount == null || leashMount.isDead() || !leashMount.isValid()) {
-            if (leashMount != null) leashMount.remove();
+            if (leashMount != null) {
+                leashMount.remove();
+                leashMount = null;
+            }
 
             Player submissive = Bukkit.getPlayer(submissiveID);
             Player dominant = Bukkit.getPlayer(dominantID);
@@ -45,7 +48,6 @@ public class Pair {
                 if (knot == null) return;
                 if (!knot.isValid()) return;
             }
-
 
             Location location = submissive.getLocation();
             location.add(0.0, 0.8, 0.0);
@@ -75,11 +77,14 @@ public class Pair {
         Player dominant = Bukkit.getPlayer(dominantID);
         if (dominant == null) return;
         leashMount.setLeashHolder(dominant);
+        knot.remove();
+        knot = null;
         anchor = null;
         fence = null;
     }
 
     public void unleash() {
+        if (isAttached()) detachFromBlock();
         if (leashMount != null) leashMount.remove();
         if (knot != null) knot.remove();
     }
@@ -114,7 +119,7 @@ public class Pair {
 
         double distance = anchor == null ? subLocation.distance(domLocation) : subLocation.distance(anchor);
 
-        if (distance > leashLength) return;
+        if (distance < leashLength) return;
 
         computePhysics(distance, attached ? anchor : domLocation, subLocation);
         submissive.setVelocity(submissive.getVelocity().add(velocity));
@@ -134,7 +139,10 @@ public class Pair {
 
     public boolean isValid() {
         if (!valid) return false;
-        if (isAttached() && knot == null || !knot.isValid()) return false;
+        if (isAttached()) {
+            if (knot == null) return false;
+            if (!knot.isValid()) return false;
+        }
         Player dominant = Bukkit.getPlayer(dominantID);
         if (!isAttached()) {
             if (dominant == null) return false;

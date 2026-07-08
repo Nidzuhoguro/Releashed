@@ -18,6 +18,7 @@ import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Collection;
 import java.util.List;
@@ -25,7 +26,7 @@ import java.util.UUID;
 
 public class Handler implements Listener {
 
-    private final Releashed releashed = Releashed.PLUGIN;
+    private final Releashed releashed = JavaPlugin.getPlugin(Releashed.class);
 
     @EventHandler
     public void onPlayerDisconnect(PlayerQuitEvent event) {
@@ -124,6 +125,8 @@ public class Handler implements Listener {
     public void onPlayerInteract(PlayerInteractAtEntityEvent event) {
         UUID actorID = event.getPlayer().getUniqueId();
 
+        if (event.getHand() == EquipmentSlot.OFF_HAND) return;
+
         if (event.getRightClicked().getType() == EntityType.LEASH_KNOT) {
             for (Pair pair : releashed.getDomPairs(actorID)) {
                 pair.detachFromBlock();
@@ -141,6 +144,7 @@ public class Handler implements Listener {
         if (targetID.equals(actorDominant)) {
             Player actor = Bukkit.getPlayer(actorID);
             if (actor == null) return;
+            if (actor.getInventory().getItemInMainHand().getType() != Material.LEAD) return;
             actor.sendMessage("You cannot leash your dominant!");
             return;
         }
