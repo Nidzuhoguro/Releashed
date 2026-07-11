@@ -12,11 +12,21 @@ import java.util.stream.Stream;
 
 public final class Releashed extends JavaPlugin {
 
-    //public final Path config = getDataFolder().toPath().resolve("config.json");
     public final Map<UUID, List<Pair>> pairs = new HashMap<>();
     public final Map<UUID, UUID> subToDomMap = new HashMap<>();
     private final PluginLogger logger = new PluginLogger(this);
     private static BukkitTask ticker;
+
+    public Pair getPair(UUID dominant, UUID submissive) {
+        List<Pair> domPairs = pairs.get(dominant);
+        if (domPairs.isEmpty()) {
+            return null;
+        }
+
+        List<Pair> dominantPairs = domPairs.stream().filter(p -> p.submissiveID.equals(submissive)).toList();
+
+        return dominantPairs.isEmpty() ? null : dominantPairs.getFirst();
+    }
 
     public List<Pair> getDomPairs(UUID player) {
         List<Pair> result = pairs.get(player);
@@ -62,6 +72,9 @@ public final class Releashed extends JavaPlugin {
     @Override
     public void onEnable() {
         // Plugin startup logic
+
+        this.saveDefaultConfig();
+
         getServer().getPluginManager().registerEvents(new Handler(), this);
         ticker = new BukkitRunnable() {
             public void run() {
