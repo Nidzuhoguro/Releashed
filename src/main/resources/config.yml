@@ -1,0 +1,4 @@
+leashLength: 5
+logoutDamage: 20
+dominantLeashingMessage: "You cannot leash your dominant!"
+alreadyLeashedMessage: "This player is already leashed."
